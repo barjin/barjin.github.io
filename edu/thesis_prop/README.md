@@ -1,5 +1,9 @@
 # Thesis Proposal - Web Scraping Framework / Workflow Definition Format
 
+
+[TLDR]: A working demo of the project, along with some (rather sparse) documentation is available in [this GitHub repository](https://github.com/barjin/wbr/). 
+___
+
 Web scraping and data extraction from the Web is an ever-growing industry, valued at USD 420.84 million in 2019, expected to reach a market value of USD 948.60 million by 2026, growing at a 13.1% CAGR. ([Market Research Future, November 2020](https://www.marketresearchfuture.com/reports/web-scraper-software-market-10347))
 
 This booming industry lacks a universal, safe format for web workflow description, as virtually all scrapers/crawlers/automations are distributed in the form of executable code as of now. This introduces a security risk while sharing those, as well as hinders the performance of the developers, who have to deal with language constructs and programming obstacles.
@@ -53,4 +57,4 @@ Additionally, this editor might a various number of checks to test whether the w
 
 ___
 
-A working demo of the project, along with some (rather sparse) documentation is available in a [GitHub repository](https://github.com/barjin/wbr/)
+Jindřich Bär, 2022
