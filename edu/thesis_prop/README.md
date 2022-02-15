@@ -1,8 +1,7 @@
 # Thesis Proposal - Web Scraping Framework / Workflow Definition Format
 
 
-\[TLDR\]: A working demo of the project, along with some (rather sparse) documentation is available in [this GitHub repository](https://github.com/barjin/wbr/). 
-___
+>\[TLDR\]: A working demo of the project, along with some (rather sparse) documentation is available in [this GitHub repository](https://github.com/barjin/wbr/). 
 
 Web scraping and data extraction from the Web is an ever-growing industry, valued at USD 420.84 million in 2019, expected to reach a market value of USD 948.60 million by 2026, growing at a 13.1% CAGR. ([Market Research Future, November 2020](https://www.marketresearchfuture.com/reports/web-scraper-software-market-10347))
 
