@@ -6,4 +6,7 @@ Personal page of Jindřich Bär, an undergrad student of Computer Science at [MF
 
 ____
 
+## Education
+- my [Bachelor's Thesis Proposal (2022)](./edu/thesis_prop/)
+
 Jindřich Bär <sub>2021</sub>
