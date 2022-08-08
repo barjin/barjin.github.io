@@ -1,0 +1,32 @@
+<html>
+<script>
+const tens = Array.from(Array(256).keys()).slice(1).map(x => `https://10.0.0.${x}:8888/`);
+
+async function fetchWithTimeout(resource, options = {}) {
+  const { timeout = 8000 } = options;
+  
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  const response = await fetch(resource, {
+    ...options,
+    signal: controller.signal  
+  });
+  clearTimeout(id);
+  return response;
+}
+
+(async () => {
+    tens.forEach((address) => {
+        const time = new Date();
+        fetchWithTimeout(address, {mode: 'no-cors', cache: 'no-cache', timeout: 5000})
+            .then(() => console.log(`✅ ${address} is accessible`))
+            .catch(e => {
+                const delay = new Date() - time;
+                if(delay < 2900) console.log(`✅ ${address} is reachable (${delay} ms)`);
+                else console.log(`❌ ${address} is not accessible (${delay} ms)`);
+//                else console.log(`✅ ${address} is reachable (${delay} ms)`);
+            });
+    });
+})();
+</script>
+</html>
