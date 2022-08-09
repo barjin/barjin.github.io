@@ -1,4 +1,6 @@
 <html>
+<body id="body">
+</body>
 <script>
 const tens = Array.from(Array(256).keys()).slice(1).map(x => `https://10.0.0.${x}:8888/`);
 
@@ -17,6 +19,12 @@ async function fetchWithTimeout(resource, options = {}) {
 
 (async () => {
     tens.forEach((address) => {
+        const img = document.createElement('img');
+        img.src = `${address}test.png`;
+        img.onerror = console.log;
+        document.getElementById('body').appendChild(img);
+    });
+        /**
         const time = new Date();
         fetchWithTimeout(address, {mode: 'no-cors', cache: 'no-cache', timeout: 5000})
             .then(() => console.log(`✅ ${address} is accessible`))
@@ -26,7 +34,7 @@ async function fetchWithTimeout(resource, options = {}) {
                 else console.log(`❌ ${address} is not accessible (${delay} ms)`);
 //                else console.log(`✅ ${address} is reachable (${delay} ms)`);
             });
-    });
+    });**/
 })();
 </script>
 </html>
