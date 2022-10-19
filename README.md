@@ -8,5 +8,6 @@ ____
 
 ## Education
 - my [Bachelor's Thesis Proposal (2022)](./edu/thesis_prop/)
+- my [Company project proposal (2022)](./edu/company_project/)
 
-Jindřich Bär <sub>2021</sub>
+Jindřich Bär <sub>2022</sub>
