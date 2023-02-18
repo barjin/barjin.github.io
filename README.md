@@ -10,4 +10,17 @@ ____
 - my [Bachelor's Thesis Proposal (2022)](./edu/thesis_prop/)
 - my [Company project proposal (2022)](./edu/company_project/)
 
-Jindřich Bär <sub>2022</sub>
+____
+
+Jindřich Bär <sub>2023</sub>
+
+___
+
+<center>
+<figure>
+    <img src="https://imgs.xkcd.com/comics/first_internet_interaction.png"
+         alt="First Internet Interaction - XKCD webcomic">
+    <figcaption><a href="https://xkcd.com/2667/">xkcd.com/2667</a></figcaption>
+</figure>
+</center>
+
