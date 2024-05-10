@@ -4,8 +4,6 @@ A bunch of (mostly) rendered Jupyter notebooks about my thesis work. The blog is
 
 ## Posts
 
----
-
 ### [10.5.2024 | Ranking benchmarks](./ranking-benchmarks/index.md)
 
 Part of the thesis work is to evaluate the performance of the basic ranking algorithm - and see whether we can improve it by utilizing the graph structure of the data. 

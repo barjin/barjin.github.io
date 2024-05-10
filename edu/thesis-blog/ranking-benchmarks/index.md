@@ -1,3 +1,5 @@
+([\< Back to the list of posts](../index.md))
+
 # Benchmarking Charles Explorer search result rankings
 
 > This Python notebook shows the process of benchmarking the search result ranking for the Charles Explorer application.
@@ -708,25 +710,12 @@ pd.DataFrame({
 ![png](entropy_greedy_files/entropy_greedy_25_1.png)
     
 
-
 We can now store the optimized set of queries and use it for the benchmarking.
 
 
 ```python
 pd.Series(best_query_set).to_csv('best_queries.csv')
 ```
-
-
-    ---------------------------------------------------------------------------
-
-    NameError                                 Traceback (most recent call last)
-
-    Cell In[3], line 1
-    ----> 1 pd.Series(best_query_set).to_csv('best_queries.csv')
-
-
-    NameError: name 'best_query_set' is not defined
-
 
 
 ```python
