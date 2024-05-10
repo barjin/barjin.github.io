@@ -14,11 +14,12 @@ ____
 
 ## Stuff I ma(k|d)e
 
-- [Charles Explorer](https://explorer.cuni.cz) *(2022 - 2023)* - University search engine for the 21st century.
+- [Charles Explorer](https://explorer.cuni.cz) *(2022 - 2024)* - University search engine for the 21st century.
     - *Interested in the nitty-gritty details? Check out the [documentation](https://jindrich.bar/charles-explorer-docs/).*
 
-Jindřich Bär <sub>2023</sub>
+- [Thesis blog](./edu/thesis-blog/index.md) *(2024)* - A bunch of (mostly) rendered Jupyter notebooks about my thesis work. Most of it probably won't make it to the final version of the thesis, but it's a nice way to document the process.
 
+Jindřich Bär <sub>2023</sub>
 ___
 
 <center>
