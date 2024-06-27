@@ -1,4 +1,5 @@
 ([\< Back to the list of posts](../index.md))
+( [Collecting the gold-standard data for benchmarking](../collecting-data/index.md) )>
 
 # Benchmarking Charles Explorer search result rankings
 

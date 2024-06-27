@@ -8,3 +8,7 @@ A bunch of (mostly) rendered Jupyter notebooks about my thesis work. The blog is
 
 Part of the thesis work is to evaluate the performance of the basic ranking algorithm - and see whether we can improve it by utilizing the graph structure of the data. 
 This post is about creating the benchmark we will use to evaluate the performance of the algorithm.
+
+### [27.5.2024 | Collecting the gold-standard benchmarking data](./collecting-data/index.md)
+
+A short post about collecting, cleaning and exploring the Elsevier Scopus data based on the queries from the previous post.
