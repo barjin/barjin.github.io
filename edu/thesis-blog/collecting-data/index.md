@@ -1,4 +1,4 @@
-<( [Selecting benchmark queries](../ranking-benchmarks/index.md) )
+<( [Selecting benchmark queries](../ranking-benchmarks/index.md) ) | ( [Benchmarking NDCG scores](../ndcg-benchmark/index.md) )>
 
 # Collecting the gold-standard data for benchmarking
 
@@ -762,3 +762,5 @@ df.select_dtypes(('int', 'float')).corr()
 
 
 We can see that the `ranking` column is only very weakly correlated with the `citationCount` and `referenceCount` columns. Moreover, the `ranking` column is mostly correlated with the `pubYear` column (correlation coefficient `0.11`). This suggests that the default Scopus ranking is mostly influenced by the full-text search and does not take much reranking into account.
+
+( [Benchmarking NDCG scores](../ndcg-benchmark/index.md) )>

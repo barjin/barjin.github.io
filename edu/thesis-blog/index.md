@@ -12,3 +12,7 @@ This post is about creating the benchmark we will use to evaluate the performanc
 ### [27.5.2024 | Collecting the gold-standard benchmarking data](./collecting-data/index.md)
 
 A short post about collecting, cleaning and exploring the Elsevier Scopus data based on the queries from the previous post.
+
+### [29.5.2024 | Benchmarking NDCG scores](./ndcg-benchmark/index.md)
+
+With the collected Scopus and Charles Explorer data, in this post we are exploring the possibilities of the automated relevance feedback system based on LLM-embeddings based similarity search and we see whether (and how much) do the measures of the local graph structure improve the search result ranking.
