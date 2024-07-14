@@ -26,3 +26,8 @@ The data exports from the university systems are missing detailed data about ext
 One large problem is that the external authors are only identified by their name.
 To automatically merge the graph nodes representing the same person, we try to employ a *hierarchical merging* algorithm. 
 In this blog post, we benchmark different ways of calculating the distance matrix between the mergeable nodes.
+
+### [14.7.2024 | Hierarchical merging - evaluating performance](./inference-hierarchical/index.md)
+
+In this short blog post, we evaluate the performance of the hierarchical merging approach (based on the graph structure) and compare this with the
+naïve approach (based on the normalized names only).
