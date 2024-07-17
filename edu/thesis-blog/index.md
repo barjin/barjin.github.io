@@ -31,3 +31,9 @@ In this blog post, we benchmark different ways of calculating the distance matri
 
 In this short blog post, we evaluate the performance of the hierarchical merging approach (based on the graph structure) and compare this with the
 naïve approach (based on the normalized names only).
+
+### [17.7.2024 | Citation count inference from local graph structure](./citation-count/index.md)
+
+In this post, we explore the possibilities of inferring the citation count of the papers based on the local graph structure.
+Using various local graph structure measures (publication node degree, various centrality measures, node cut for the neighborhood, etc.), we try to predict the citation count of the papers.
+We also benchmark the performance of the prediction models and assess the usability of the local graph structure measures for ranking the publications based on their predicted citation count.
