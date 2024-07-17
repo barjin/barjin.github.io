@@ -473,6 +473,7 @@ We can now plot the distribution of the positions of the most similar publicatio
 
 ```python
 import pandas as pd
+import matplotlib.pyplot as plt
 
 df = pd.read_csv('./similarity_ranking.csv')
 df.rename(columns={'ranking': 'similarity_scopus_ranking'}, inplace=True)
@@ -480,18 +481,13 @@ c = df['similarity_scopus_ranking'].hist(bins=100)
 c.set_title('Similarity-based ranking prediction for Charles Explorer documents')
 c.set_xlabel('Predicted position in the Scopus search results')
 c.set_ylabel('Number of documents')
+
+plt.show()
 ```
 
 
-
-
-    Text(0, 0.5, 'Number of documents')
-
-
-
-
     
-![png](03_benchmarking_files/03_benchmarking_10_1.png)
+![png](03_benchmarking_files/03_benchmarking_10_0.png)
     
 
 
@@ -543,6 +539,7 @@ rankings.drop(columns=['index'], inplace=True)
 
 rankings.rename(columns={'ranking': 'scopus_similarity_ranking'}, inplace=True)
 
+rankings.to_csv('./rankings.csv', index=False)
 rankings
 ```
 
@@ -793,7 +790,7 @@ for query in rankings['query'].unique():
     dcgs.append(get_ndcg(rankings[rankings['query'] == query]['similarity_scopus_ranking'].to_list()))
     best_ndcgs.append(get_ndcg(rankings[rankings['query'] == query].sort_values('similarity_scopus_ranking')['similarity_scopus_ranking'].to_list()))
 
-scores['queries'] = queries
+scores['query'] = queries
 scores['dcg'] = dcgs
 scores['idcg'] = best_ndcgs
 scores['ndcg'] = scores['dcg'] / scores['idcg']
@@ -822,7 +819,7 @@ scores
   <thead>
     <tr style="text-align: right;">
       <th></th>
-      <th>queries</th>
+      <th>query</th>
       <th>dcg</th>
       <th>idcg</th>
       <th>ndcg</th>
@@ -1016,16 +1013,10 @@ $\sigma_{st}$ is the number of shortest paths between nodes $s$ and $t$, and $\s
 
 While this is often calculated for larger graphs, it is an useful measure for ego-networks too, as it can help us quantify the importance of a node in its local neighbourhood. Everett et. al have shown that the betweenness centrality might be strongly correlated with the actual global betweenness of a node in the graph.
 
-<!-- @article{article,
-author = {Everett, Martin and Borgatti, Stephen},
-year = {2005},
-month = {01},
-pages = {31-38},
-title = {Ego network betweenness},
-volume = {27},
-journal = {Social Networks},
-doi = {10.1016/j.socnet.2004.11.007}
-} -->
+In the following cells, we calculate the 1- and 2-hop centrality, node degree, size of the neighborhood node cut and the katz centrality for the publications in the search results. We then store these values in a CSV file for further analysis.
+
+
+### Calculating neighborhood betweenness centralities
 
 
 ```python
@@ -1179,14 +1170,442 @@ local_centrality
 
 
 
-After calculating the ego-centralities, we merge the data with the original search results data. This gives us the final dataset for the benchmarking.
+### Calculating neighborhood node cut sizes
 
 
 ```python
-local_centrality.to_csv('./local_centrality.csv', index=False)
+from utils.memgraph import get_neighborhood_node_cut
+import pandas as pd
 
+rankings = pd.read_csv('./rankings.csv')
+
+node_cuts = pd.DataFrame()
+
+for i, query in enumerate(rankings['query'].unique()):
+    if i % 10 == 0:
+        print(f"{i}/{len(rankings['query'].unique())}")
+    ids = rankings[rankings['query'] == query]['id'].astype(str).to_list()
+
+    current_node_cuts = get_neighborhood_node_cut(ids)
+    current_node_cuts['query'] = query
+
+    node_cuts = pd.concat([node_cuts, current_node_cuts])
+
+node_cuts
+```
+
+    0/174
+    10/174
+    20/174
+    30/174
+    40/174
+    50/174
+    60/174
+    70/174
+    80/174
+    90/174
+    100/174
+    110/174
+    120/174
+    130/174
+    140/174
+    150/174
+    160/174
+    170/174
+
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>id</th>
+      <th>node_cut</th>
+      <th>query</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>491147</td>
+      <td>99</td>
+      <td>lexical semantics</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>592464</td>
+      <td>29</td>
+      <td>lexical semantics</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>594640</td>
+      <td>0</td>
+      <td>lexical semantics</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>588808</td>
+      <td>98</td>
+      <td>lexical semantics</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>268937</td>
+      <td>44</td>
+      <td>lexical semantics</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>95</th>
+      <td>73261</td>
+      <td>282</td>
+      <td>biology</td>
+    </tr>
+    <tr>
+      <th>96</th>
+      <td>31897</td>
+      <td>154</td>
+      <td>biology</td>
+    </tr>
+    <tr>
+      <th>97</th>
+      <td>566168</td>
+      <td>75</td>
+      <td>biology</td>
+    </tr>
+    <tr>
+      <th>98</th>
+      <td>279719</td>
+      <td>99</td>
+      <td>biology</td>
+    </tr>
+    <tr>
+      <th>99</th>
+      <td>551485</td>
+      <td>62</td>
+      <td>biology</td>
+    </tr>
+  </tbody>
+</table>
+<p>9269 rows × 3 columns</p>
+</div>
+
+
+
+### Calculating node degrees
+
+
+```python
+from utils.memgraph import get_degrees
+import pandas as pd
+
+degrees = pd.DataFrame()
+
+for i, query in enumerate(rankings['query'].unique()):
+    if i % 10 == 0:
+        print(f"{i}/{len(rankings['query'].unique())}")
+    ids = rankings[rankings['query'] == query]['id'].astype(str).to_list()
+
+    new_degrees = get_degrees(ids)
+    new_degrees['query'] = query
+
+    degrees = pd.concat([degrees, new_degrees])
+```
+
+    0/174
+    10/174
+    20/174
+    30/174
+    40/174
+    50/174
+    60/174
+    70/174
+    80/174
+    90/174
+    100/174
+    110/174
+    120/174
+    130/174
+    140/174
+    150/174
+    160/174
+    170/174
+
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>id</th>
+      <th>degree</th>
+      <th>query</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>74651</td>
+      <td>1</td>
+      <td>lexical semantics</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>118521</td>
+      <td>2</td>
+      <td>lexical semantics</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>97393</td>
+      <td>1</td>
+      <td>lexical semantics</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>117637</td>
+      <td>1</td>
+      <td>lexical semantics</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>145132</td>
+      <td>4</td>
+      <td>lexical semantics</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>95</th>
+      <td>588322</td>
+      <td>1</td>
+      <td>biology</td>
+    </tr>
+    <tr>
+      <th>96</th>
+      <td>592720</td>
+      <td>2</td>
+      <td>biology</td>
+    </tr>
+    <tr>
+      <th>97</th>
+      <td>605641</td>
+      <td>2</td>
+      <td>biology</td>
+    </tr>
+    <tr>
+      <th>98</th>
+      <td>605136</td>
+      <td>1</td>
+      <td>biology</td>
+    </tr>
+    <tr>
+      <th>99</th>
+      <td>621001</td>
+      <td>1</td>
+      <td>biology</td>
+    </tr>
+  </tbody>
+</table>
+<p>9269 rows × 3 columns</p>
+</div>
+
+
+
+### Calculating Katz centralities
+
+
+```python
+from utils.memgraph import get_katz_centrality
+import pandas as pd
+
+katz = pd.DataFrame({'id': [], 'katz_centrality': []})
+
+for i, id in enumerate(rankings['id'].unique()):
+    if i % 500 == 0:
+        print(f"{i}/{len(rankings['id'].unique())}")
+
+    katz_centrality = get_katz_centrality(id)
+
+    katz = pd.concat([katz, pd.DataFrame({'id': [id], 'katz_centrality': [katz_centrality]})])
+```
+
+    0/9105
+    500/9105
+    1000/9105
+    1500/9105
+    2000/9105
+    2500/9105
+    3000/9105
+    3500/9105
+    4000/9105
+    4500/9105
+    5000/9105
+    5500/9105
+    6000/9105
+    6500/9105
+    7000/9105
+    7500/9105
+    8000/9105
+    8500/9105
+    9000/9105
+
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>id</th>
+      <th>katz_centrality</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>491147.0</td>
+      <td>0.200</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>592464.0</td>
+      <td>0.200</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>594640.0</td>
+      <td>1.496</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>588808.0</td>
+      <td>0.200</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>268937.0</td>
+      <td>0.200</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>9100</th>
+      <td>73261.0</td>
+      <td>0.200</td>
+    </tr>
+    <tr>
+      <th>9101</th>
+      <td>31897.0</td>
+      <td>1.000</td>
+    </tr>
+    <tr>
+      <th>9102</th>
+      <td>566168.0</td>
+      <td>0.400</td>
+    </tr>
+    <tr>
+      <th>9103</th>
+      <td>279719.0</td>
+      <td>0.400</td>
+    </tr>
+    <tr>
+      <th>9104</th>
+      <td>551485.0</td>
+      <td>0.200</td>
+    </tr>
+  </tbody>
+</table>
+<p>9105 rows × 2 columns</p>
+</div>
+
+
+
+
+```python
+katz.to_csv('./katz.csv', index=False)
+degrees.to_csv('./degrees.csv', index=False)
+node_cuts.to_csv('./node_cuts.csv', index=False)
+local_centrality.to_csv('./local_centrality.csv', index=False)
+```
+
+Once we collect all the graph measures we want to utilize for the reranking, we can proceed to the actual reranking of the search results. We merge all of the collected data into a single dataframe, with separate columns for each of the graph measures.
+
+
+```python
+import pandas as pd
+
+rankings = pd.read_csv('./rankings.csv')
+local_centrality = pd.read_csv('./local_centrality.csv')
+degrees = pd.read_csv('./degrees.csv')
+katz = pd.read_csv('./katz.csv')
+node_cuts = pd.read_csv('./node_cuts.csv')
 
 centralities = rankings.join(local_centrality[['id', 'centrality_1', 'centrality_2']].set_index('id'), how='left', on='id', rsuffix='_centrality')
+centralities = centralities.join(degrees[['id', 'degree']].set_index('id'), how='left', on='id', rsuffix='_degree')
+centralities = centralities.join(katz[['id', 'katz_centrality']].set_index('id'), how='left', on='id', rsuffix='_katz')
+centralities = centralities.join(node_cuts[['id', 'node_cut']].set_index('id'), how='left', on='id', rsuffix='_node_cut')
+
 centralities
 ```
 
@@ -1223,6 +1642,9 @@ centralities
       <th>charles_explorer_ranking</th>
       <th>centrality_1</th>
       <th>centrality_2</th>
+      <th>degree</th>
+      <th>katz_centrality</th>
+      <th>node_cut</th>
     </tr>
   </thead>
   <tbody>
@@ -1240,6 +1662,9 @@ centralities
       <td>0</td>
       <td>0.000000</td>
       <td>0.000000</td>
+      <td>1</td>
+      <td>0.200</td>
+      <td>99</td>
     </tr>
     <tr>
       <th>1</th>
@@ -1255,6 +1680,9 @@ centralities
       <td>1</td>
       <td>0.000000</td>
       <td>0.000000</td>
+      <td>1</td>
+      <td>0.200</td>
+      <td>29</td>
     </tr>
     <tr>
       <th>2</th>
@@ -1270,6 +1698,9 @@ centralities
       <td>2</td>
       <td>0.000545</td>
       <td>0.000002</td>
+      <td>5</td>
+      <td>1.496</td>
+      <td>0</td>
     </tr>
     <tr>
       <th>3</th>
@@ -1285,6 +1716,9 @@ centralities
       <td>3</td>
       <td>0.000000</td>
       <td>0.000000</td>
+      <td>1</td>
+      <td>0.200</td>
+      <td>98</td>
     </tr>
     <tr>
       <th>4</th>
@@ -1300,9 +1734,15 @@ centralities
       <td>4</td>
       <td>0.000000</td>
       <td>0.000000</td>
+      <td>1</td>
+      <td>0.200</td>
+      <td>44</td>
     </tr>
     <tr>
       <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
       <td>...</td>
       <td>...</td>
       <td>...</td>
@@ -1330,6 +1770,9 @@ centralities
       <td>95</td>
       <td>0.000000</td>
       <td>0.000000</td>
+      <td>1</td>
+      <td>0.200</td>
+      <td>282</td>
     </tr>
     <tr>
       <th>9265</th>
@@ -1345,6 +1788,9 @@ centralities
       <td>96</td>
       <td>0.001878</td>
       <td>0.000670</td>
+      <td>5</td>
+      <td>1.000</td>
+      <td>154</td>
     </tr>
     <tr>
       <th>9266</th>
@@ -1360,6 +1806,9 @@ centralities
       <td>97</td>
       <td>0.001118</td>
       <td>0.000084</td>
+      <td>2</td>
+      <td>0.400</td>
+      <td>75</td>
     </tr>
     <tr>
       <th>9267</th>
@@ -1375,6 +1824,9 @@ centralities
       <td>98</td>
       <td>0.006841</td>
       <td>0.057311</td>
+      <td>2</td>
+      <td>0.400</td>
+      <td>99</td>
     </tr>
     <tr>
       <th>9268</th>
@@ -1390,37 +1842,358 @@ centralities
       <td>99</td>
       <td>0.000000</td>
       <td>0.000000</td>
+      <td>1</td>
+      <td>0.200</td>
+      <td>62</td>
     </tr>
   </tbody>
 </table>
-<p>9609 rows × 12 columns</p>
+<p>11865 rows × 15 columns</p>
 </div>
 
 
+
+To combine all the available measures into the new relevance score for reranking, we try two different approaches:
+
+The first approach is to use (an L2 regularized) linear regression model. 
+Such model learns linear combination coefficients for each of the graph measures, which are then used to calculate the new relevance score. This approach is simple and interpretable, but it might not capture the non-linear relationships between the graph measures and the relevance score.
+
+
+```python
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import train_test_split
+
+projection = centralities[['id', 'charles_explorer_ranking', 'centrality_1', 'centrality_2', 'degree', 'katz_centrality', 'node_cut', 'similarity_scopus_ranking']].dropna()
+projection['katz_centrality'] = projection['katz_centrality'].replace([float('inf')], projection['katz_centrality'].median())
+
+feature_columns = ['charles_explorer_ranking', 'centrality_1', 'centrality_2', 'degree', 'katz_centrality', 'node_cut']
+
+X = projection[feature_columns]
+# We predict the "relevance feedback" calculated from the Scopus ranking, just like in the NDCG calculation
+y = 5 / (projection['similarity_scopus_ranking'] + 1)
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+linear_model = Ridge(max_iter=1000)
+
+linear_pipeline = Pipeline([
+    ('scaler', StandardScaler()),
+    ('regression', linear_model)
+])
+
+linear_pipeline.fit(X_train, y_train)
+
+from sklearn.metrics import mean_squared_error
+
+y_pred = linear_pipeline.predict(X_test)
+print(mean_squared_error(y_test, y_pred))
+
+print(list(zip(feature_columns, linear_model.coef_)))
+```
+
+    2.1015957992306977
+    [('charles_explorer_ranking', -0.23068435940164658), ('centrality_1', 0.08316576326530806), ('centrality_2', 0.010186983762182704), ('degree', -0.08756245520393091), ('katz_centrality', -0.004918498830738786), ('node_cut', -0.027334632864995427)]
+
+
+On the test set ($n=2265$), the linear regression model meets mean squared error of $2.1016$. Note that this is not a particularly good result.
+What is even less promising is the fact that in the learned model weights, the coefficient for the original (TF-IDF based) Charles Explorer ranking is the highest.
+This seemingly confirms our hypothesis that the Scopus search result ranking is mainly influenced by the relevance of the search results themselves, rather than any other - more global - publication measures.
+
+This means that (at least for the linear regression model), the graph measures do not provide much useful information for the reranking of the search results.
+
+While this might be true - and our attempt at improving the search result ranking using the graph measures might have failed - we can try to learn a more complex model that can capture the non-linear relationships between the graph measures and the relevance score.
+
+The second approach is to use a random forest regression model. This model is a non-linear model that can capture the non-linear relationships between the graph measures and the relevance score. It is also more robust to the noise in the data, as it averages over multiple decision trees.
+
+
+```python
+from sklearn.neural_network import MLPRegressor
+
+neural_network = MLPRegressor(hidden_layer_sizes=(100, 100), max_iter=1000, verbose=True)
+
+pipeline = Pipeline([
+    ('scaler', StandardScaler()),
+    ('neural_network', neural_network)
+])
+
+pipeline.fit(X_train, y_train)
+
+from sklearn.metrics import mean_squared_error
+
+y_pred = pipeline.predict(X_test)
+mean_squared_error(y_test, y_pred)
+```
+
+    Iteration 1, loss = 1.02231286
+    Iteration 2, loss = 0.98644778
+    Iteration 3, loss = 0.98140297
+    Iteration 4, loss = 0.97746657
+    Iteration 5, loss = 0.97548573
+    Iteration 6, loss = 0.97641211
+    Iteration 7, loss = 0.97256164
+    Iteration 8, loss = 0.97151457
+    Iteration 9, loss = 0.97134148
+    Iteration 10, loss = 0.96817720
+    Iteration 11, loss = 0.96761415
+    Iteration 12, loss = 0.96731812
+    Iteration 13, loss = 0.96578961
+    Iteration 14, loss = 0.96533688
+    Iteration 15, loss = 0.96432081
+    Iteration 16, loss = 0.96331435
+    Iteration 17, loss = 0.96119211
+    Iteration 18, loss = 0.96223902
+    Iteration 19, loss = 0.96258106
+    Iteration 20, loss = 0.96601726
+    Iteration 21, loss = 0.96142456
+    Iteration 22, loss = 0.95834626
+    Iteration 23, loss = 0.96036677
+    Iteration 24, loss = 0.95794635
+    Iteration 25, loss = 0.95848961
+    Iteration 26, loss = 0.95653644
+    Iteration 27, loss = 0.95243912
+    Iteration 28, loss = 0.95186894
+    Iteration 29, loss = 0.95210193
+    Iteration 30, loss = 0.95254282
+    Iteration 31, loss = 0.95328308
+    Iteration 32, loss = 0.95021622
+    Iteration 33, loss = 0.95323434
+    Iteration 34, loss = 0.95002858
+    Iteration 35, loss = 0.95316751
+    Iteration 36, loss = 0.95125432
+    Iteration 37, loss = 0.94835466
+    Iteration 38, loss = 0.94961246
+    Iteration 39, loss = 0.94508779
+    Iteration 40, loss = 0.94339325
+    Iteration 41, loss = 0.94475526
+    Iteration 42, loss = 0.94074612
+    Iteration 43, loss = 0.94203259
+    Iteration 44, loss = 0.94607752
+    Iteration 45, loss = 0.94781724
+    Iteration 46, loss = 0.94040869
+    Iteration 47, loss = 0.93854604
+    Iteration 48, loss = 0.94117788
+    Iteration 49, loss = 0.93691948
+    Iteration 50, loss = 0.94035281
+    Iteration 51, loss = 0.93614566
+    Iteration 52, loss = 0.93492421
+    Iteration 53, loss = 0.93621770
+    Iteration 54, loss = 0.93652761
+    Iteration 55, loss = 0.93773258
+    Iteration 56, loss = 0.93270883
+    Iteration 57, loss = 0.93404918
+    Iteration 58, loss = 0.93495718
+    Iteration 59, loss = 0.93344590
+    Iteration 60, loss = 0.93545076
+    Iteration 61, loss = 0.93380044
+    Iteration 62, loss = 0.93152079
+    Iteration 63, loss = 0.93050401
+    Iteration 64, loss = 0.92739720
+    Iteration 65, loss = 0.93463387
+    Iteration 66, loss = 0.92761031
+    Iteration 67, loss = 0.92317816
+    Iteration 68, loss = 0.92489747
+    Iteration 69, loss = 0.92327646
+    Iteration 70, loss = 0.92326897
+    Iteration 71, loss = 0.93223231
+    Iteration 72, loss = 0.92320831
+    Iteration 73, loss = 0.92300850
+    Iteration 74, loss = 0.92791904
+    Iteration 75, loss = 0.92347111
+    Iteration 76, loss = 0.92055211
+    Iteration 77, loss = 0.92071812
+    Iteration 78, loss = 0.91906237
+    Iteration 79, loss = 0.91893128
+    Iteration 80, loss = 0.91934245
+    Iteration 81, loss = 0.91900184
+    Iteration 82, loss = 0.91879487
+    Iteration 83, loss = 0.91595051
+    Iteration 84, loss = 0.91820723
+    Iteration 85, loss = 0.91322645
+    Iteration 86, loss = 0.91371769
+    Iteration 87, loss = 0.91552889
+    Iteration 88, loss = 0.91291932
+    Iteration 89, loss = 0.91285456
+    Iteration 90, loss = 0.91328988
+    Iteration 91, loss = 0.91185761
+    Iteration 92, loss = 0.91115108
+    Iteration 93, loss = 0.91215725
+    Iteration 94, loss = 0.91422760
+    Iteration 95, loss = 0.91005531
+    Iteration 96, loss = 0.90999359
+    Iteration 97, loss = 0.91183829
+    Iteration 98, loss = 0.90776120
+    Iteration 99, loss = 0.91133150
+    Iteration 100, loss = 0.90595804
+    Iteration 101, loss = 0.90832610
+    Iteration 102, loss = 0.91433753
+    Iteration 103, loss = 0.90366230
+    Iteration 104, loss = 0.90306604
+    Iteration 105, loss = 0.90444941
+    Iteration 106, loss = 0.90652510
+    Iteration 107, loss = 0.90186100
+    Iteration 108, loss = 0.90250346
+    Iteration 109, loss = 0.90321419
+    Iteration 110, loss = 0.90705455
+    Iteration 111, loss = 0.90062882
+    Iteration 112, loss = 0.89881434
+    Iteration 113, loss = 0.89988572
+    Iteration 114, loss = 0.90620232
+    Iteration 115, loss = 0.90023621
+    Iteration 116, loss = 0.90353988
+    Iteration 117, loss = 0.89826651
+    Iteration 118, loss = 0.89579876
+    Iteration 119, loss = 0.89883197
+    Iteration 120, loss = 0.89809465
+    Iteration 121, loss = 0.89804636
+    Iteration 122, loss = 0.89641157
+    Iteration 123, loss = 0.89463258
+    Iteration 124, loss = 0.89474943
+    Iteration 125, loss = 0.89773291
+    Iteration 126, loss = 0.89832722
+    Iteration 127, loss = 0.90165782
+    Iteration 128, loss = 0.89367484
+    Iteration 129, loss = 0.89195153
+    Iteration 130, loss = 0.89007655
+    Iteration 131, loss = 0.88930204
+    Iteration 132, loss = 0.88911372
+    Iteration 133, loss = 0.88859489
+    Iteration 134, loss = 0.89100618
+    Iteration 135, loss = 0.89109479
+    Iteration 136, loss = 0.88916153
+    Iteration 137, loss = 0.88514613
+    Iteration 138, loss = 0.88710152
+    Iteration 139, loss = 0.89005088
+    Iteration 140, loss = 0.88462308
+    Iteration 141, loss = 0.88636593
+    Iteration 142, loss = 0.88389683
+    Iteration 143, loss = 0.88229623
+    Iteration 144, loss = 0.88686781
+    Iteration 145, loss = 0.88770173
+    Iteration 146, loss = 0.88901551
+    Iteration 147, loss = 0.88509529
+    Iteration 148, loss = 0.88058844
+    Iteration 149, loss = 0.88261315
+    Iteration 150, loss = 0.88141532
+    Iteration 151, loss = 0.87877532
+    Iteration 152, loss = 0.88018106
+    Iteration 153, loss = 0.88580437
+    Iteration 154, loss = 0.88216152
+    Iteration 155, loss = 0.88110478
+    Iteration 156, loss = 0.88355416
+    Iteration 157, loss = 0.87749537
+    Iteration 158, loss = 0.87847931
+    Iteration 159, loss = 0.87914908
+    Iteration 160, loss = 0.87741585
+    Iteration 161, loss = 0.87848044
+    Iteration 162, loss = 0.87587548
+    Iteration 163, loss = 0.87523249
+    Iteration 164, loss = 0.88046574
+    Iteration 165, loss = 0.87175654
+    Iteration 166, loss = 0.87855644
+    Iteration 167, loss = 0.87537240
+    Iteration 168, loss = 0.87450106
+    Iteration 169, loss = 0.87996410
+    Iteration 170, loss = 0.87596864
+    Iteration 171, loss = 0.87291909
+    Iteration 172, loss = 0.87485277
+    Iteration 173, loss = 0.87059811
+    Iteration 174, loss = 0.87396509
+    Iteration 175, loss = 0.86761399
+    Iteration 176, loss = 0.87283183
+    Iteration 177, loss = 0.87068696
+    Iteration 178, loss = 0.87077601
+    Iteration 179, loss = 0.87008127
+    Iteration 180, loss = 0.87151137
+    Iteration 181, loss = 0.87403838
+    Iteration 182, loss = 0.87257197
+    Iteration 183, loss = 0.87071542
+    Iteration 184, loss = 0.87366716
+    Iteration 185, loss = 0.87533898
+    Iteration 186, loss = 0.87361373
+    Training loss did not improve more than tol=0.000100 for 10 consecutive epochs. Stopping.
+
+
+
+
+
+    2.0497850932278974
+
+
+
+We see that the performance of the neural network model is only marginally better than the linear regression model. The mean squared error on the test set is $2.0979$.
+
+While for both models, we have calculated the mean squared error of predicting the relevance scores, this provides only partial information about the actual performance of the model for reranking.
+
+To assess the reranking performance of both models, we calculate the nDCG score for the reranked search results. We use the same formula as for the original search results, but with the new relevance scores assigned by the models.
+
+
+```python
+centralities = centralities.merge(
+    pd.DataFrame({
+        'id': projection['id'],
+        'linear': linear_pipeline.predict(X),
+        'neural': pipeline.predict(X)
+    }).set_index('id'),
+
+    how='left',
+    on=('id')
+)
+```
 
 
 ```python
 dcg_centrality_1 = []
 dcg_centrality_2 = []
+dcg_degree = []
+dcg_katz = []
+dcg_node_cut = []
+linear = []
+neural = []
 
-for query in scores['queries']:
+for query in scores['query']:
     x = centralities[centralities['query'] == query].drop_duplicates(subset=['id'])
-    dcg_centrality_1.append(
-        get_ndcg(x.sort_values('centrality_1', ascending=False)['similarity_scopus_ranking'].to_list())
+    # dcg_centrality_1.append(
+    #     get_ndcg(x.sort_values('centrality_1', ascending=False)['similarity_scopus_ranking'].to_list())
+    # )
+    # dcg_centrality_2.append(
+    #     get_ndcg(x.sort_values('centrality_2', ascending=False)['similarity_scopus_ranking'].to_list())
+    # )
+    # dcg_degree.append(
+    #     get_ndcg(x.sort_values('degree', ascending=False)['similarity_scopus_ranking'].to_list())
+    # )
+    # dcg_katz.append(
+    #     get_ndcg(x.sort_values('katz_centrality', ascending=False)['similarity_scopus_ranking'].to_list())
+    # )
+    # dcg_node_cut.append(
+    #     get_ndcg(x.sort_values('node_cut', ascending=False)['similarity_scopus_ranking'].to_list())
+    # )
+    linear.append(
+        get_ndcg(x.sort_values('linear', ascending=False)['similarity_scopus_ranking'].to_list())
     )
-    dcg_centrality_2.append(
-        get_ndcg(x.sort_values('centrality_2', ascending=False)['similarity_scopus_ranking'].to_list())
+    neural.append(
+        get_ndcg(x.sort_values('neural', ascending=False)['similarity_scopus_ranking'].to_list())
     )
     
+    
+# scores['dcg_1_centrality'] = dcg_centrality_1
+# scores['dcg_2_centrality'] = dcg_centrality_2
+# scores['dcg_degree'] = dcg_degree
+# scores['dcg_katz'] = dcg_katz
+# scores['dcg_node_cut'] = dcg_node_cut
+scores['dcg_linear'] = linear
+scores['dcg_neural'] = neural
+# scores['ndcg_1_centrality'] = scores['dcg_1_centrality'] / scores['idcg']
+# scores['ndcg_2_centrality'] = scores['dcg_2_centrality'] / scores['idcg']
+# scores['ndcg_degree'] = scores['dcg_degree'] / scores['idcg']
+# scores['ndcg_katz'] = scores['dcg_katz'] / scores['idcg']
+# scores['ndcg_node_cut'] = scores['dcg_node_cut'] / scores['idcg']
+scores['ndcg_linear'] = scores['dcg_linear'] / scores['idcg']
+scores['ndcg_neural'] = scores['dcg_neural'] / scores['idcg']
 
-scores['dcg_1_centrality'] = dcg_centrality_1
-scores['dcg_2_centrality'] = dcg_centrality_2
-scores['ndcg_1_centrality'] = scores['dcg_1_centrality'] / scores['idcg']
-scores['ndcg_2_centrality'] = scores['dcg_2_centrality'] / scores['idcg']
-```
+scores.drop(columns=['dcg_linear', 'dcg_neural'], inplace=True)
 
-
-```python
 scores.describe()
 ```
 
@@ -1448,17 +2221,13 @@ scores.describe()
       <th>dcg</th>
       <th>idcg</th>
       <th>ndcg</th>
-      <th>dcg_1_centrality</th>
-      <th>dcg_2_centrality</th>
-      <th>ndcg_1_centrality</th>
-      <th>ndcg_2_centrality</th>
+      <th>ndcg_linear</th>
+      <th>ndcg_neural</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <th>count</th>
-      <td>149.000000</td>
-      <td>149.000000</td>
       <td>149.000000</td>
       <td>149.000000</td>
       <td>149.000000</td>
@@ -1470,68 +2239,54 @@ scores.describe()
       <td>14.919819</td>
       <td>19.167405</td>
       <td>0.761607</td>
-      <td>13.883896</td>
-      <td>13.944649</td>
-      <td>0.698402</td>
-      <td>0.705671</td>
+      <td>0.746176</td>
+      <td>0.770519</td>
     </tr>
     <tr>
       <th>std</th>
       <td>16.810894</td>
       <td>17.665142</td>
       <td>0.180979</td>
-      <td>16.569196</td>
-      <td>16.445045</td>
-      <td>0.194843</td>
-      <td>0.190947</td>
+      <td>0.172590</td>
+      <td>0.178775</td>
     </tr>
     <tr>
       <th>min</th>
       <td>0.094340</td>
       <td>0.094340</td>
       <td>0.405669</td>
-      <td>0.094340</td>
-      <td>0.094340</td>
-      <td>0.390366</td>
-      <td>0.390511</td>
+      <td>0.404108</td>
+      <td>0.425830</td>
     </tr>
     <tr>
       <th>25%</th>
       <td>5.250473</td>
       <td>7.704989</td>
       <td>0.627563</td>
-      <td>5.000000</td>
-      <td>5.000000</td>
-      <td>0.539009</td>
-      <td>0.545812</td>
+      <td>0.618646</td>
+      <td>0.615640</td>
     </tr>
     <tr>
       <th>50%</th>
       <td>9.527864</td>
       <td>14.840570</td>
       <td>0.736246</td>
-      <td>8.215773</td>
-      <td>8.261666</td>
-      <td>0.655002</td>
-      <td>0.671576</td>
+      <td>0.735163</td>
+      <td>0.759933</td>
     </tr>
     <tr>
       <th>75%</th>
       <td>18.064385</td>
       <td>24.112511</td>
       <td>0.934206</td>
-      <td>16.277946</td>
-      <td>15.838206</td>
-      <td>0.873008</td>
-      <td>0.884310</td>
+      <td>0.904977</td>
+      <td>0.955842</td>
     </tr>
     <tr>
       <th>max</th>
       <td>104.693354</td>
       <td>104.693354</td>
       <td>1.000000</td>
-      <td>104.693354</td>
-      <td>104.693354</td>
       <td>1.000000</td>
       <td>1.000000</td>
     </tr>
@@ -1541,8 +2296,16 @@ scores.describe()
 
 
 
-The mean nDCG values for the `1-` and `2-` hop betweenness centralities are noticeably lower than the baseline nDCG value for the basic Charles Explorer search result ranking. 
+We see that the nDCG score for both the models utilizing the graph measures is lower - or comparable - to the nDCG score of the original search results. 
 
-This is partially expected, since the relevance feedback is based on Scopus search result ranking, which is - presumably - based on the relevance of the search results to the query, i.e. the same metric we are using in the base Charles Explorer search result ranking.
+This shows that the graph measures we have collected do not provide much useful information for the reranking of the search results. 
+Note that while the evaluation of the reranking performance is done on the entire set (including the linear regression / neural network training set), the results are still not any better than the original search results. This hints at the high dimensionality of the problem and the lack of generalization of the models.
 
-In the next post, we will proceed with comparing the local graph statistics with the nDCG values based on the global popularity of the publications, as measured by the citation and reference count.
+As mentioned before, the Scopus search result ranking is likely mainly influenced by the relevance of the search results themselves, rather than any other - more global - publication measures.
+In a way, the fact that the graph measures do not help with the reranking does not come as a surprise.
+This might be also partially caused by the title similarity search step, which helps with the missing publications problem.
+
+While this concludes the search result ranking benchmarking for the Charles Explorer application (as we do not have better target data to use for the benchmarking),
+we can still try to get insights on the social network graph structure and the publication popularity.
+
+To perform this experiment, we try to find relationship between the global publication popularity - as captured by the citation count - and the local graph measures as we have defined them before.
