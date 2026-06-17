@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Crowdmap — Instagram hotspots</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
+  <style>
+    :root { --panel-bg: rgba(255, 255, 255, 0.92); --fg: #1b1e26; }
+    html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    #map { position: absolute; inset: 0; background: #eceef1; }
+
+    .panel {
+      position: absolute; z-index: 1000; top: 12px; left: 12px;
+      background: var(--panel-bg); color: var(--fg);
+      padding: 14px 16px; border-radius: 12px; max-width: 300px;
+      box-shadow: 0 8px 28px rgba(0,0,0,.45); backdrop-filter: blur(6px);
+    }
+    .panel h1 { font-size: 16px; margin: 0 0 8px; }
+    .panel p { font-size: 12px; line-height: 1.45; margin: 4px 0; opacity: .85; }
+    .panel select {
+      width: 100%; margin: 2px 0 6px; padding: 6px 8px; border-radius: 8px;
+      background: #f3f4f7; color: var(--fg); border: 1px solid #d2d6de; font-size: 13px;
+    }
+    .panel .toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; margin: 2px 0 4px; }
+    .panel .toggle input { accent-color: #ff3b30; cursor: pointer; }
+    .leaflet-popup-content a { color: #d62d20; font-weight: 600; text-decoration: none; }
+    .leaflet-popup-content a:hover { text-decoration: underline; }
+    .listpanel .nm a.ig { color: #d62d20; text-decoration: none; margin-left: 4px; opacity: .8; }
+    .listpanel .nm a.ig:hover { text-decoration: underline; }
+
+    /* ranked list */
+    .listpanel {
+      position: absolute; z-index: 1000; top: 12px; right: 12px;
+      width: 290px; max-height: 78vh; display: flex; flex-direction: column;
+      background: var(--panel-bg); color: var(--fg); border-radius: 12px;
+      box-shadow: 0 8px 28px rgba(0,0,0,.45); backdrop-filter: blur(6px);
+      transition: transform .25s ease;
+    }
+    .listpanel.collapsed { transform: translateX(calc(100% + 12px)); }
+    .listpanel .collapse {
+      position: absolute; top: 8px; left: -30px; width: 30px; height: 46px;
+      border: none; cursor: pointer; font-size: 18px; line-height: 46px; color: var(--fg);
+      background: var(--panel-bg); border-radius: 10px 0 0 10px;
+      box-shadow: -4px 4px 16px rgba(0,0,0,.25); backdrop-filter: blur(6px);
+    }
+    .listpanel .collapse:hover { background: #ffffff; }
+    .listpanel .hdr { padding: 11px 14px; font-size: 13px; font-weight: 600; border-bottom: 1px solid #00000014; }
+    .listpanel ol { margin: 0; padding: 4px 0; list-style: none; overflow-y: auto; }
+    .listpanel li {
+      display: grid; grid-template-columns: 26px 1fr auto; align-items: center;
+      gap: 8px; padding: 6px 12px; cursor: pointer; border-bottom: 1px solid #0000000d;
+    }
+    .listpanel li:hover { background: #0000000a; }
+    .listpanel .rank { color: #e23b2e; font-variant-numeric: tabular-nums; font-size: 12px; text-align: right; }
+    .listpanel .nm { font-size: 12.5px; line-height: 1.25; }
+    .listpanel .nm .sub { display: block; font-size: 10.5px; opacity: .55; }
+    .listpanel .nm em { font-style: normal; color: #c77800; opacity: .9; font-size: 10.5px; }
+    .listpanel .ct { font-size: 11.5px; opacity: .8; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+    .legend {
+      position: absolute; z-index: 1000; bottom: 18px; left: 12px;
+      background: var(--panel-bg); color: var(--fg);
+      padding: 10px 12px; border-radius: 10px; font-size: 12px;
+      box-shadow: 0 8px 28px rgba(0,0,0,.45);
+    }
+    .legend .bar {
+      height: 10px; width: 180px; border-radius: 5px; margin: 6px 0 4px;
+      background: linear-gradient(90deg, #3b6cff 0%, #00c2ff 30%, #36e07a 55%, #ffc933 78%, #ff2d20 100%);
+    }
+    .legend .ticks { display: flex; justify-content: space-between; opacity: .8; }
+    .leaflet-tooltip.crowd { font-size: 12px; }
+    .leaflet-tooltip.crowd b { font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <div class="panel">
+    <h1>📍 Crowdmap</h1>
+    <select id="citySel"></select>
+    <label class="toggle"><input type="checkbox" id="bubbleToggle"> Show bubbles (size ∝ posts)</label>
+    <p id="subtitle">Instagram hotspots — heat ∝ posts. Near-duplicate tags merged.</p>
+    <p id="meta"></p>
+  </div>
+
+  <div class="listpanel" id="listpanel">
+    <button class="collapse" id="collapseBtn" title="Hide list" aria-label="Hide list">›</button>
+    <div class="hdr" id="listHdr">Top places</div>
+    <ol id="placelist"></ol>
+  </div>
+
+  <div class="legend">
+    <div>Heat — posts per place</div>
+    <div class="bar"></div>
+    <div class="ticks"><span>fewer</span><span>more</span></div>
+  </div>
+
+  <!-- scraped datasets: window.CROWDMAP_CITIES = [{city, locations, ...}, ...] -->
+  <script src="data.js"></script>
+  <script>
+    const cities = [window.CROWDMAP_CITIES[0]]
+      || (window.CROWDMAP ? [window.CROWDMAP] : []);
+
+    const map = L.map('map', { zoomControl: true });
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 20,
+    }).addTo(map);
+
+    const fmt = n => n.toLocaleString('en-US');
+    const MERGE_DIST_M = 200;      // "very close" threshold
+    const NAME_SIM = 0.6;          // token-overlap threshold for "similar name"
+
+    // --- merge near-duplicate tags --------------------------------------
+    const STOP = new Set(['the','of','and','de','del','la','las','los','el','y','di','da','do','a']);
+    const normName = s => s.normalize('NFD').replace(/\p{Diacritic}/gu, '')
+      .toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+    const tokenize = s => normName(s).split(' ').filter(t => t.length >= 2 && !STOP.has(t));
+    const overlap = (a, b) => { // overlap coefficient: shared / smaller set
+      if (!a.length || !b.length) return 0;
+      const sb = new Set(b); let inter = 0;
+      for (const t of new Set(a)) if (sb.has(t)) inter++;
+      return inter / Math.min(new Set(a).size, sb.size);
+    };
+    const haversine = (la1, lo1, la2, lo2) => {
+      const R = 6371000, r = Math.PI / 180;
+      const dLa = (la2 - la1) * r, dLo = (lo2 - lo1) * r;
+      const x = Math.sin(dLa/2)**2 + Math.cos(la1*r)*Math.cos(la2*r)*Math.sin(dLo/2)**2;
+      return 2 * R * Math.asin(Math.sqrt(x));
+    };
+    function mergePlaces(locs) {
+      // Anchor each cluster on its most-popular member; absorb nearby
+      // similarly-named tags into it and sum their posts. A spatial grid keeps
+      // this near-linear instead of O(n²) (matters for the dense Prague set).
+      const items = locs.slice().sort((a, b) => b.media_count - a.media_count);
+      const toks = items.map(it => tokenize(it.name));
+      const used = new Array(items.length).fill(false);
+
+      // Cell ~440 m (lat) / ≥280 m (lng) — wider than MERGE_DIST_M, so every
+      // candidate within range lives in the 3×3 block around a point's cell.
+      const CELL = 0.004;
+      const cellOf = (la, lo) => [Math.round(la / CELL), Math.round(lo / CELL)];
+      const grid = new Map();
+      items.forEach((it, idx) => {
+        const [ci, cj] = cellOf(it.lat, it.lng);
+        const k = ci + '_' + cj;
+        (grid.get(k) || grid.set(k, []).get(k)).push(idx);
+      });
+
+      const out = [];
+      for (let i = 0; i < items.length; i++) {
+        if (used[i]) continue;
+        const head = items[i];
+        let posts = head.media_count, merged = 1;
+        const [ci, cj] = cellOf(head.lat, head.lng);
+        for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) {
+          const cell = grid.get((ci + di) + '_' + (cj + dj));
+          if (!cell) continue;
+          for (const j of cell) {
+            if (j <= i || used[j]) continue; // only absorb lower-ranked, unused
+            if (haversine(head.lat, head.lng, items[j].lat, items[j].lng) <= MERGE_DIST_M
+                && overlap(toks[i], toks[j]) >= NAME_SIM) {
+              used[j] = true; posts += items[j].media_count; merged++;
+            }
+          }
+        }
+        out.push({ ...head, media_count: posts, merged });
+      }
+      return out;
+    }
+
+    const RADIUS_SCALE = 0.06; // px per √post — bubbles, uncapped
+    const sub = l => l.island ? `${l.town}, ${l.island}` : (l.city || l.category || '');
+    // Instagram location page (with the posts) for a place.
+    const igUrl = l => `https://www.instagram.com/explore/locations/${l.id}/${l.slug || ''}`;
+    const popupHtml = l =>
+      `<b>${l.name}</b><br>${fmt(l.media_count)} posts` +
+      (l.merged > 1 ? ` <span style="opacity:.6">(${l.merged} tags merged)</span>` : '') +
+      (sub(l) ? `<br><span style="opacity:.7">${sub(l)}</span>` : '') +
+      `<br><a href="${igUrl(l)}" target="_blank" rel="noopener">View posts on Instagram ↗</a>`;
+
+    // --- hide whole-city / region / country "umbrella" tags ---------------
+    const ADMIN_CATEGORIES = new Set([
+      'City', 'Region', 'Country/Region', 'Borough', 'Neighborhood',
+      'State', 'Province', 'County', 'Town', 'Village', 'Municipality',
+      'Geographical Place', 'Tour Guide', 'Tourist Information Center',
+    ]);
+    const CITY_COUNTRY_WORDS = new Set([
+      'prague', 'praha', 'prag', 'praga', 'praze', 'czech', 'czechia', 'czechian',
+      'republic', 'republik', 'republika', 'rep', 'cz', 'ceska', 'cesko', 'checa',
+      'tschechien', 'the', 'of', 'in', 'city', 'greater', 'metropolitan', 'downtown', 'central',
+      'прага', 'чехія', 'чехия', 'чешская', 'республика',
+    ]);
+    const isUmbrella = (l) => {
+      if (ADMIN_CATEGORIES.has(l.category)) return true;
+      const toks = (l.name || '').normalize('NFD').replace(/\p{Diacritic}/gu, '')
+        .toLowerCase().replace(/[^\p{L} ]/gu, ' ').split(/\s+/).filter(Boolean);
+      return toks.length > 0 && toks.every((t) => CITY_COUNTRY_WORDS.has(t));
+    };
+
+    // --- render ----------------------------------------------------------
+    const LIST_CAP = 500;                 // cap DOM rows; full set stays on the heat
+    let heatLayer = null;
+    const bubbles = L.layerGroup();       // toggled on/off via the checkbox
+    const bubbleRenderer = L.canvas({ padding: 0.5 }); // canvas → fast with many markers
+    let bubblesBuilt = false;             // build markers lazily, only when shown
+    let currentLocs = [], currentWeight = c => 0;
+
+    // Build the (expensive) per-venue circle markers only when bubbles are on.
+    function buildBubbles() {
+      bubbles.clearLayers();
+      currentLocs.forEach(l => {
+        const w = currentWeight(l.media_count);
+        L.circleMarker([l.lat, l.lng], {
+          renderer: bubbleRenderer,
+          radius: Math.max(1.5, RADIUS_SCALE * Math.sqrt(l.media_count)),
+          color: '#ffffff', weight: 1, opacity: 0.5 + 0.35 * w,
+          fillColor: '#ff3b30', fillOpacity: 0.25 + 0.45 * w,
+        }).bindPopup(popupHtml(l), { className: 'crowd' }).addTo(bubbles);
+      });
+      bubblesBuilt = true;
+    }
+
+    function render(city) {
+      const valid = city.locations.filter(l => l.lat != null && l.lng != null);
+      // Pre-merged datasets (built by build-data.mjs) render directly; otherwise
+      // fall back to filtering + merging in the browser.
+      const locs = city.prepared ? valid : mergePlaces(valid.filter(l => !isUmbrella(l)));
+
+      // Logarithmic heat scale: weight ∝ log(posts), normalized across the set.
+      const FLOOR = 0.06;
+      let cMin = Infinity, cMax = 1;
+      for (const l of locs) { if (l.media_count < cMin) cMin = l.media_count; if (l.media_count > cMax) cMax = l.media_count; }
+      const lmin = Math.log(Math.max(1, cMin)), span = Math.log(Math.max(1, cMax)) - lmin || 1;
+      const weight = c => Math.max(FLOOR, Math.min(1, (Math.log(Math.max(1, c)) - lmin) / span));
+      currentLocs = locs; currentWeight = weight;
+
+      if (heatLayer) map.removeLayer(heatLayer);
+      heatLayer = L.heatLayer(locs.map(l => [l.lat, l.lng, weight(l.media_count)]), {
+        radius: 30, blur: 18, max: 1.0, maxZoom: 17, minOpacity: 0.25,
+        gradient: { 0.0: '#3b6cff', 0.3: '#00c2ff', 0.55: '#36e07a', 0.78: '#ffc933', 1.0: '#ff2d20' },
+      }).addTo(map);
+
+      // bubbles rebuilt lazily — only if the toggle is currently on
+      bubbles.clearLayers(); bubblesBuilt = false;
+      if (bubbleToggle.checked) buildBubbles();
+
+      // ranked list (capped to the top LIST_CAP for responsiveness)
+      const ranked = locs.slice().sort((a, b) => b.media_count - a.media_count);
+      const ol = document.getElementById('placelist');
+      ol.innerHTML = '';
+      ranked.slice(0, LIST_CAP).forEach((l, i) => {
+        const li = document.createElement('li');
+        li.innerHTML =
+          `<span class="rank">${i + 1}</span>` +
+          `<span class="nm">${l.name}${l.merged > 1 ? ` <em>+${l.merged - 1}</em>` : ''}` +
+          `<a class="ig" href="${igUrl(l)}" target="_blank" rel="noopener" title="View posts on Instagram">↗</a>` +
+          (sub(l) ? `<span class="sub">${sub(l)}</span>` : '') + `</span>` +
+          `<span class="ct">${fmt(l.media_count)}</span>`;
+        li.addEventListener('click', (e) => {
+          if (e.target.closest('a')) return; // let the Instagram link through
+          map.flyTo([l.lat, l.lng], Math.max(map.getZoom(), 15), { duration: 0.6 });
+          L.popup({ className: 'crowd' }).setLatLng([l.lat, l.lng]).setContent(popupHtml(l)).openOn(map);
+        });
+        ol.appendChild(li);
+      });
+      document.getElementById('listHdr').textContent = ranked.length > LIST_CAP
+        ? `Top places — top ${LIST_CAP} of ${ranked.length}`
+        : `Top places — ${ranked.length}`;
+
+      map.fitBounds(L.latLngBounds(locs.map(l => [l.lat, l.lng])), { padding: [40, 40] });
+      document.getElementById('meta').textContent =
+        `${locs.length} places · scraped ${new Date(city.scraped_at).toLocaleDateString()}`;
+    }
+
+    // collapse / expand the top-places list
+    const listpanel = document.getElementById('listpanel');
+    const collapseBtn = document.getElementById('collapseBtn');
+    collapseBtn.addEventListener('click', () => {
+      const collapsed = listpanel.classList.toggle('collapsed');
+      collapseBtn.textContent = collapsed ? '‹' : '›';
+      collapseBtn.title = collapsed ? 'Show list' : 'Hide list';
+    });
+
+    // bubbles on/off
+    const bubbleToggle = document.getElementById('bubbleToggle');
+    bubbleToggle.addEventListener('change', () => {
+      if (bubbleToggle.checked) { if (!bubblesBuilt) buildBubbles(); bubbles.addTo(map); }
+      else map.removeLayer(bubbles);
+    });
+
+    // city selector — default to most recently scraped (last in list)
+    const sel = document.getElementById('citySel');
+    cities.forEach((c, i) => {
+      const o = document.createElement('option');
+      o.value = i; o.textContent = c.city ?? `City ${i + 1}`;
+      sel.appendChild(o);
+    });
+    sel.addEventListener('change', () => render(cities[+sel.value]));
+    if (cities.length) {
+      sel.value = cities.length - 1;
+      render(cities[cities.length - 1]);
+    }
+  </script>
+</body>
+</html>
